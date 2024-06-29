@@ -1,0 +1,506 @@
+/* socket.c
+27/12/92:	pjc
+	Connection stuff put into connect.c
+	This should be TCP/IP connection stuff only.
+ */
+
+#ifndef MSDOS
+#ifndef TCPIP
+#define TCPIP
+#endif
+#else
+#include "defs.h"
+#endif
+
+#include <stdio.h>
+#include "net.h"
+
+#ifdef TCPIP
+
+#include <sys/types.h>
+#ifdef MSDOS
+#ifndef WINSOCK
+#include <sys/nfs_time.h>
+#include <sys/ioctl.h>
+#endif
+#else
+#include <sys/ioctl.h>
+#endif
+
+#ifdef MSDOS
+
+#ifdef WINSOCK
+#include <sys/time.h>
+
+#endif
+
+#else
+#include <sys/time.h>
+#include <sys/file.h>
+#include <sys/wait.h>
+#endif	/* MSDOS */
+
+#include <sys/signal.h>
+#include <fcntl.h>
+#include <sys/errno.h>
+
+#include <ctype.h>
+
+#ifndef WINSOCK
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#endif
+
+#ifdef DECNET
+#include <netdnet/dn.h>
+#include <netdnet/dnetdb.h>
+#endif
+
+
+#include "db.h"
+#include "interfac.h"
+#include "config.h"
+#include "externs.h"
+
+#include "os.h"
+
+#include "tcpcoms.h"
+#include "misc.h"
+
+extern char *mud_name(PROTO(int));
+
+#include "mud_set.h"
+
+#ifdef WINSOCK
+#define perror win_perror
+#endif
+
+extern struct descriptor_data *descriptor_list ;
+
+extern SOCKET sock;
+extern int ndescriptors ;
+extern int avail_descriptors;
+extern int maxd;
+
+#ifndef EINTR
+#define EINTR -99	/* pjc not a real value... */
+#endif
+
+
+#ifndef MSC
+extern int	errno;
+#endif
+
+extern int notcp;
+
+#ifdef WINSOCK
+SOCKET sockarray[32];
+
+#define ConOf(a)  sockarray[a]	/* winsock does not use ints so have a table */
+#define BAD_SOCKET(a) (a == NULL || a == INVALID_SOCKET)
+#else
+
+#define ConOf(a)  a		/* Just use the int */
+#define BAD_SOCKET(a)  (a < 0)
+#endif
+
+static int tcp_init_done;
+
+/* Was in interfac.c */
+
+void make_nonblocking(s)
+SOCKET s;
+{
+#ifndef MSDOS
+    if (fcntl (s, F_SETFL, FNDELAY) == -1) {
+	perror ("make_nonblocking: fcntl");
+	panic ("FNDELAY fcntl failed");
+    }
+#else
+#ifdef TCPIP
+	int arg = 1;	/* 1 = non blocking, 0 = blocking */
+#ifndef WINSOCK
+	tk_ioctl(s, FIONBIO, &arg);
+#else
+	ioctlsocket(s, FIONBIO, &arg);	
+#endif
+
+#endif
+#endif
+}
+
+
+struct descriptor_data *initializesock( );
+char *getpeer();
+
+const char *addrout( a)
+long a;
+{
+    static char buf[1024];
+
+    sprintf (buf, "%d.%d.%d.%d", (a >> 24) & 0xff, (a >> 16) & 0xff,
+	     (a >> 8) & 0xff, a & 0xff);
+    return buf;
+}
+
+
+SOCKET make_socket( port)
+int port;
+{
+    SOCKET s;
+    int opt;
+    struct sockaddr_in server;
+
+	if( notcp){
+		return INVALID_SOCKET;
+	}
+#ifdef WINSOCK
+    s = socket (PF_INET, SOCK_STREAM, 0);
+#else
+    s = socket (AF_INET, SOCK_STREAM, 0);
+#endif
+    if ( BAD_SOCKET(s) ) {
+	perror ("creating stream socket");
+	exit (3);
+    }
+    opt = 1;
+    if (setsockopt (s, SOL_SOCKET, SO_REUSEADDR,
+		    (char *) &opt, Sizeof (opt)) < 0) {
+	perror ("setsockopt");
+	exit (1);
+    }
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons (port);
+    if (bind (s, (struct sockaddr *) & server, Sizeof (server))) {
+	perror ("binding stream socket");
+	close (s);
+	exit (4);
+    }
+    listen (s, 5);
+fprintf(stderr,"Made socket\n");
+    return s;
+}
+
+
+/* return allocated string containing name of host */
+
+char *getpeer(s)
+SOCKET s;
+{
+	struct sockaddr_dn *daddr;
+	struct nodeent *peernode;
+	struct sockaddr_in *xbuffer;
+	char buffer[256];
+	int peernamelength, error, i;
+	int status;
+	static char node[256], object[256];
+	int ol=255, nl=255;
+	struct hostent *hp;
+
+	node[0] = object[0] = '\0';
+	error = 0;
+
+	peernamelength = 255;
+	status = getpeername(s, (struct sockaddr *)buffer, &peernamelength);
+	if(status == -1){
+		error++;
+	}else {
+#ifdef DECNET
+	    if(((struct sockaddr_dn *)buffer)->sdn_family == AF_DECnet){
+		daddr = (struct sockaddr_dn *)buffer ;
+		for (i=0;i<ol-1 && i<daddr->sdn_objnamel;i++) {
+			object[i] = daddr->sdn_objname[i] ;
+		}
+		object[++i] = '\0' ;
+		for (i=0; object[i] != '\0'; i++) /*object has trailing blanks*/
+			if (isspace(object[i])) object[i] = '\0' ;
+		peernode = getnodebyaddr(daddr->sdn_nodeaddr,
+				daddr->sdn_nodeaddrl,AF_DECnet) ;
+		if (!peernode) {
+			printf("getnodebyaddr failed\n");
+			error++ ;
+		} else {
+			strncpy(node,peernode->n_name,nl-1) ;
+			node[nl] = '\0' ;
+		}
+	    }else {
+#else
+	    {
+#endif
+		xbuffer = ((struct sockaddr_in *)&buffer);
+		hp = gethostbyaddr ( (char *)&xbuffer->sin_addr, 
+			Sizeof( xbuffer->sin_addr), AF_INET);
+		if( !hp){
+			printf("getnodebyaddr failed\n");
+			error++;
+		}else {
+			strcpy(node,hp->h_name) ;
+		}
+	   }
+	}
+	if(error)
+		strcpy(node, "UNKNOWN");
+	return (char *)alloc_string(node);
+}
+
+static SOCKET tcp_socket;
+static int dev_index = -3;
+extern int tcp_port;
+
+int tcp_init(dev_num)
+int dev_num;
+{	int n;
+
+	if( tcp_init_done)
+		return 0;
+#ifdef MSDOS
+#ifndef WINSOCK
+	if( !is_pc_nfs_installed()){
+		notcp = 1;
+	}
+#else
+	{	WSADATA wsadata;
+		int err;
+		WORD ver;
+
+		ver = 0x101;
+		err = WSAStartup(ver, &wsadata);
+		if( err != 0){
+			notcp = 1;
+		}
+	}
+#endif
+#endif
+	tcp_init_done = 1;
+
+	if( notcp){
+		return 0;
+	}
+	dev_index = dev_num;
+	tcp_socket= make_socket(tcp_port);
+
+	if(BAD_SOCKET(tcp_socket)){
+		notcp = 1;
+	}
+fprintf(stderr,"notcp = %d\n", notcp);
+	return 0;
+}
+
+
+int tcp_check()
+{	SOCKET n;
+	int nnew;
+	fd_set input_set, output_set;
+	struct sockaddr_in addr;
+	int addr_len;
+	struct timeval timeout;
+
+	if(notcp)
+		return 0;
+
+	FD_ZERO (&input_set);
+	FD_ZERO (&output_set);
+
+#ifndef MSDOS
+	if (ndescriptors < avail_descriptors){
+	    FD_SET (tcp_socket, &input_set);
+	}
+#else
+	    FD_SET (tcp_socket, &input_set);
+#endif
+
+	timeout.tv_sec = 0l;
+	timeout.tv_usec= 0l;
+
+	maxd = 32;
+
+#ifndef WINSOCK
+	if( maxd <= tcp_socket)
+		maxd = tcp_socket+1;
+#endif
+
+	if (select (maxd, &input_set, &output_set,
+		    (fd_set *) NULL, &timeout) < 0) {
+	    if (errno != EINTR) {
+		perror ("select");
+		return 0;
+	    }
+
+	}
+
+	if( !(FD_ISSET(tcp_socket, &input_set))){
+		return 0;
+	}
+
+/* Do the listen / accept stuff. */
+
+	addr_len = Sizeof (addr);
+	n = accept (tcp_socket, (struct sockaddr *) & addr, &addr_len);
+	if (BAD_SOCKET(n)) {
+		fprintf (stderr, "ACCEPT failed!\n");
+		return 0;
+	} else {
+		fprintf (stderr, "ACCEPT from %s(%d) on descriptor %d\n", addrout (ntohl (addr.sin_addr.s_addr)), ntohs (addr.sin_port), n);
+	}
+
+#ifdef WINSOCK
+	for(nnew = 1; nnew < 32; nnew++){
+		if( BAD_SOCKET(nnew)){
+			sockarray[nnew] = n;
+			break;
+		}
+	}
+#else
+	nnew = n;
+#endif	
+
+/* Queue the request to start another session */
+	make_nonblocking(nnew);
+
+	net_new_con(dev_index, nnew);
+	return 1;
+}
+
+int tcp_open(fd, net)
+int fd;
+struct netinfo *net;
+{
+	return net->data;
+}
+
+int tcp_close(fd, net)
+int fd;
+struct netinfo *net;
+{
+#ifndef WINSOCK
+	close(net->data);
+#else
+	closesocket(ConOf(net->data));
+	sockarray[net->data] = INVALID_SOCKET;	/* Mark as free */
+#endif
+	return -1;
+}
+
+int tcp_read(fd, net, buf, cnt)
+int fd;
+struct netinfo *net;
+char *buf;
+int cnt;
+{
+	return recv(ConOf(net->data), buf, cnt, 0);
+}
+
+int tcp_write(fd, net, buf, cnt)
+int fd;
+struct netinfo *net;
+char *buf;
+int cnt;
+{	int ret;
+	int e = 0;
+
+	ret = send(ConOf(net->data), buf, cnt, 0);
+
+	if( ret < 0){
+		e = errno;
+	}
+	return ret;
+}
+
+int tcp_select(in, out)
+mud_set *in, *out;
+{	struct timeval timeout;
+	int n,net;
+	fd_set input_set, output_set;
+
+	FD_ZERO(&input_set);
+	FD_ZERO(&output_set);
+
+	for(n=0; n< NCONNECTIONS; n++){
+		if( notcp == 0 && net_connections[n] &&
+			net_connections[n]->type == dev_index){
+			net = net_connections[n]->data;
+
+			if( maxd <= net)
+				maxd = net+1;
+
+			if( in && MUD_ISSET(n, in) ){
+				FD_SET(ConOf(net), &input_set);
+			}
+
+			if( out && MUD_ISSET(n, out) ){
+				FD_SET(ConOf(net), &output_set);
+			}
+
+
+		}else {
+			if( in)
+				MUD_CLR(n, in);
+			if( out)
+				MUD_CLR(n, out);
+		}
+	}
+	if(notcp){
+		return 0;
+	}
+
+	timeout.tv_sec = 0l;
+	timeout.tv_usec = 0l;
+
+	if (select (maxd, &input_set, &output_set,
+		    (fd_set *) 0, &timeout) < 0) {
+#ifndef MSDOS
+	    if (errno != EINTR) {
+		perror ("select");
+		return 0;
+	    }
+#endif
+	}
+
+	for(n=0; n< NCONNECTIONS; n++){
+		if( net_connections[n] &&
+			net_connections[n]->type == dev_index){
+			net = net_connections[n]->data;
+
+			if( !(FD_ISSET(ConOf(net), &input_set)) && in ){
+				MUD_CLR(n, in);
+			}
+			if( !(FD_ISSET(ConOf(net), &output_set)) && out){
+				MUD_CLR(n, out);
+			}
+		}
+	}
+
+	return 0;
+}
+
+char *tcp_name(fd, net)
+int fd;
+struct netinfo *net;
+{
+	return getpeer(net->data);
+}
+
+int tcp_shut(fd, net)
+int fd;
+struct netinfo *net;
+{
+#ifdef WINSOCK
+	if( tcp_init_done){
+		WSACleanup();
+		tcp_init_done = 0;
+	}
+	return 0;
+#else
+	if( !net || !tcp_init_done){
+		return 0;
+	}
+	tcp_init_done = 0;
+
+	return 0;
+#endif
+}
+
+#endif	/* TCPIP */
+

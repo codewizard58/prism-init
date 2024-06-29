@@ -1,0 +1,39 @@
+# Makefile for BSX client (MSDOS) modified to use MSC Graph library
+LIBS=
+OBJS=main.obj server.obj scenery.obj io.obj text.obj mscxtool.obj
+CC=cl
+COPTS=/c /AL /DMSC -I$(INCLUDE)
+DOS=D:
+INCLUDE= $(DOS)\MSC\INCLUDE
+
+all: mscxtool.obj text.obj server.obj scenery.obj
+
+bsx: $(OBJS)
+	link /st:4000 $(OBJS),bsx,bsx/map/noi/noe;
+
+main.obj : main.c config.h
+	$(CC) $(COPTS) main.c
+
+xtool.obj : xtool.c config.h
+	$(CC) $(COPTS) xtool.c
+
+mscxtool.obj : mscxtool.c config.h
+	$(CC) $(COPTS) mscxtool.c
+
+scenery.obj : scenery.c config.h
+	$(CC) $(COPTS) scenery.c
+
+server.obj : server.c config.h
+	$(CC) $(COPTS) server.c
+
+io.obj : io.c
+	$(CC) $(COPTS) io.c
+
+text.obj: text.c
+	$(CC) $(COPTS) text.c 
+
+test: test.obj
+	link test,test,test/map/noi/noe;
+test.obj: test.c
+	$(CC) $(COPTS) test.c
+

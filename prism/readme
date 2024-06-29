@@ -1,0 +1,11 @@
+This is the basic source directory for PRISM.
+
+The current makefile builds the normal IBM-PC version of the software
+with one user on the console and one on the COM1 port.
+
+Currently I am using MSC6.0 as my C compiler.
+
+Peter Churchyard.
+email: pjc@cc.ic.ac.uk
+prism related mailing list: prism@cc.ic.ac.uk
+

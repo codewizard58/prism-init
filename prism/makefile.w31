@@ -1,0 +1,232 @@
+# MSDOS Makefile (I use NDMAKE)
+#
+.SUFFIXES: .exe .obj .cpp .c .asm .h .res .rc
+
+DOS=g:
+CC= cl
+DOSINCL= -I. -I..\prism
+LINK= link
+
+# For Lattice C
+#.c.obj:
+#	c:\lc\lc1  -n -ml -cw $(CFLAGS) $*
+#	c:\lc\lc2  $*
+
+# For Microsoft C
+.c.obj:
+	$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) $*.c
+#	$(CC) -c $(DOSINCL) -DMSDOS -DMSC /Ad /Gt256 $(CFLAGS) $*.c
+
+.cpp.obj:
+	$(CC) -c $(DOSINCL) -DMSC /AL $(CPPFLAGS) $*.cpp
+
+# *.asm stuff
+.asm.obj:
+	masm $*;
+
+# On MSDOS include -DMSDOS or see the .c.obj rules above.
+# If using Microsoft C define MSC or see .c.obj rules above.
+#
+# Special MSDOS stuff to try and do bigger databases.
+#
+# VM_BOOL	- store lock expressions on disk.
+# VM_DB		- store object records on disk.
+#
+# You now have to put these in the file defs.h
+#
+#DEFS= -DLOG_FAILED_COMMANDS -DRESTRICTED_BUILDING -DVM_DB -DVM_BOOL
+#
+#DEFS= -DRESTRICTED_BUILDING -DTEST_MALLOC -DSHARED_NAMES -DEXTRACT
+#DEFS= -D_WINDOWS 
+DEFS= -D_WINDOWS /Zd /Od
+
+CFLAGS= $(DEFS) 
+CPPFLAGS= $(DEFS)
+
+OFILES= create.obj help.obj look.obj match.obj move.obj player.obj predicat.obj \
+	set.obj speech.obj stringut.obj utils.obj wiz.obj db.obj boolexp.obj \
+	unparse.obj game.obj misc.obj socket.obj text.obj fight.obj mscio.obj\
+	robot.obj process.obj notify.obj zone.obj \
+	parsbool.obj objstore.obj extract.obj connect.obj
+
+all: version.exe makefile winmud.exe
+
+makefile: ..\prism\makefile.w31
+	copy ..\prism\makefile.w31 makefile
+	+make 
+
+version.exe: version.obj
+	link version,version,version/map;
+
+version.obj: ..\prism\version.c
+	$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+
+version: version.h ver.obj
+	version WINDOWS
+	$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ver.c
+ver.obj: ver.c
+ver.c: ..\prism\ver.c
+	copy ..\prism\ver.c 
+	touch ver.c
+
+pretty: pretty.exe
+	pretty <base.db
+
+pretty.exe: pretty.obj
+	link pretty,pretty,pretty/map/noi/noe;
+
+winmud.exe: version ansiterm.obj $(OFILES) interfac.obj winmud.obj winmud.res dialogs.obj
+	$(LINK) @winmud.lnk
+	rc /v /t -K winmud.res
+
+winmud.res: winmud.rc resource.h winmud.dlg
+	rc /r /v winmud.rc
+
+# BSX Front end.
+netbsx: bsx.hed bsx $(OFILES) interfac.obj
+	$(LINK) @netmud.bsx
+	echo Setup for BSX version.
+
+# Non BSX Front end.
+netmud: nobsx.h netmud.exe
+	echo Setup for non BSX version.
+
+bsx.hed:
+	copy yesbsx.h bsx.h
+	copy netmud.bsx netmud.lnk
+	touch bsx.h			# copy does not touch date/time
+
+nobsx.h:
+	echo >bsx.h /* No BSX */
+	copy netmud.msc netmud.lnk
+	touch bsx.h			# copy does not touch date/time
+
+bsx: prismbsx.obj
+	command /c makebsx
+
+prismbsx.obj: prismbsx.c
+
+disk:	
+	@erase *.bak
+	@erase *.map
+	@mkdir a:\prism
+	@mkdir a:\prism\bsx
+	@mkdir a:\unix
+	@mkdir a:\dos
+	copy *.c a:\prism
+	copy *.h a:\prism
+	copy makefile.* a:\dos
+	copy *.asm a:\prism
+	copy netmud.* a:\dos
+	@erase a:\prism\netmud.exe
+	@erase a:\dos\netmud.exe
+	copy *.txt a:\prism
+	copy *.bat a:\dos
+	copy minimal.db a:
+	copy base.db a:
+	copy *.man a:
+	copy bsx\*.c a:\prism\bsx
+	copy bsx\*.h a:\prism\bsx
+	copy bsx\makefile a:\prism\bsx
+	copy bsx\*.fon a:\prism\bsx
+
+clean:	
+	erase *.bak
+	erase *.map
+	erase *.q
+	erase *.obj
+
+test: netmud.exe
+	netmud test.db test1
+
+base: netmud.exe
+	netmud base.db test1
+
+# Object files.
+ansiterm.obj: ansiterm.cpp winmud.h
+boolexp.obj: ..\prism\boolexp.c db.h match.h externs.h config.h interfac.h fight.h boolexp.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+connect.obj: ../prism/connect.c db.h descript.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+create.obj: ../prism/create.c  db.h config.h interfac.h externs.h proto.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+db.obj: ../prism/db.c db.h config.h boolexp.h bsx.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+extract.obj: ..\prism\extract.c  db.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+fight.obj: ..\prism\fight.c  db.h externs.h fight.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+game.obj: ..\prism\game.c  db.h config.h interfac.h match.h externs.h bsx.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+help.obj: ..\prism\help.c  db.h config.h interfac.h externs.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+interfac.obj: ..\prism\interfac.c  db.h interfac.h config.h descript.h fd_set.h bsx.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+look.obj: ..\prism\look.c  db.h config.h interfac.h match.h externs.h fight.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+match.obj: ..\prism\match.c  db.h config.h match.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+misc.obj: ..\prism\misc.c fd_set.h bsx.h misc.h mudcom.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+move.obj: ..\prism\move.c  db.h config.h interfac.h match.h externs.h fight.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+mscio.obj: ..\prism\mscio.asm
+		masm ..\prism\$*.asm;
+notify.obj: ..\prism\notify.c db.h interfac.h config.h descript.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+objstore.obj: ..\prism\objstore.c
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+parsbool.obj: ..\prism\parsbool.c boolexp.h interfac.h externs.h db.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+paths.obj: ..\prism\paths.c  db.h config.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+player.obj: ..\prism\player.c  db.h config.h interfac.h externs.h descript.h fight.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+predicat.obj: ..\prism\predicat.c  db.h interfac.h config.h externs.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+pretty.obj: ..\prism\pretty.c
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+process.obj: ..\prism\process.c db.h interfac.h config.h descript.h bsx.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+robot.obj: ..\prism\robot.c  db.h externs.h fight.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+set.obj: ..\prism\set.c  db.h config.h match.h interfac.h externs.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+socket.obj: ..\prism\socket.c db.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+speech.obj: ..\prism\speech.c  db.h interfac.h match.h config.h externs.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+stringut.obj: ..\prism\stringut.c  externs.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+text.obj: ..\prism\text.c
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+unparse.obj: ..\prism\unparse.c db.h externs.h config.h interfac.h boolexp.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+utils.obj: ..\prism\utils.c  db.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+wiz.obj: ..\prism\wiz.c  db.h interfac.h match.h externs.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+winmud.obj: winmud.cpp winmud.h resource.h misc.h mudcom.h proto.h
+zone.obj: ..\prism\zone.c  db.h interfac.h match.h externs.h fight.h
+		$(CC) -c $(DOSINCL) -DMSDOS -DMSC /AL /Gt256 $(CFLAGS) ..\prism\$*.c
+
+# header files.
+boolexp.h: ..\prism\boolexp.h
+bsx.h:
+	echo /* */ >bsx.h
+
+config.h: ..\prism\config.h 
+copyrite.h: ..\prism\copyrite.h
+db.h: ..\prism\db.h  defs.h
+descript.h: ..\prism\descript.h
+externs.h: ..\prism\externs.h  db.h
+fd_set.h: ..\prism\fd_set.h
+fight.h: ..\prism\fight.h
+interfac.h: ..\prism\interfac.h  db.h
+match.h: ..\prism\match.h  db.h
+misc.h: ..\prism\misc.h
+proto.h: ..\prism\proto.h
+version.h: ..\prism\version.h
+	copy ..\prism\version.h
+#
+

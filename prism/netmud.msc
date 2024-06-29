@@ -1,0 +1,5 @@
+create+game+help+look+match+move+player+
+predicat+set+speech+stringut+utils+wiz+
+db+boolexp+unparse+socket+text+interfac+misc+mscio+fight+robot+
+process+notify+zone+parsbool+objstore
+netmud,netmud/map/noi/st:0x4000/noe;

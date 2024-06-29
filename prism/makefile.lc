@@ -1,0 +1,171 @@
+.SUFFIXES: .exe .obj .c .asm .h
+
+.c.obj:
+	c:\lc\lc1  -n -ml -cw ${CFLAGS} $*
+	c:\lc\lc2  $*
+.asm.obj:
+	masm $*;
+
+#
+# Whatever you put in for $(CC) must be able to grok ANSI C.
+#
+# CC=gcc
+# OPTIM= -g -pipe -W -Wreturn-type -Wunused -Wcomment -Wwrite-strings
+#CC=cc
+#OPTIM=
+CC= echo
+OPTIM=
+# 
+# To log failed commands (HUH's) to stderr, include -DLOG_FAILED_COMMANDS
+# To restricted object-creating commands to users with the BUILDER bit,
+#   include -DRESTRICTED_BUILDING
+# To log all commands, include -DLOG_COMMANDS
+# To force fork_and_dump() to use vfork() instead of fork(), include 
+#   -DUSE_VFORK.
+# To force grow_database() to be clever about its memory management,
+#   include -DDB_DOUBLING.  Use this only if your realloc does not allocate
+#   in powers of 2 (if you already have a clever realloc, this option will
+#   only cost you extra space).
+# By default, db.c initially allocates enough space for 10000 objects, then
+#   grows the space if needed.  To change this value, include
+#   -DDB_INITIAL_SIZE=xxxx where xxxx is the new value (minimum 1).
+# To include code for keeping track of the number of objects allocated,
+#   include -DTEST_MALLOC.
+#
+#DEFS= -DTHREAD -DLOG_FAILED_COMMANDS -DRESTRICTED_BUILDING
+DEFS= -DLOG_FAILED_COMMANDS -DRESTRICTED_BUILDING -DTEST_MALLOC
+#DEFS= -DLOG_FAILED_COMMANDS -DRESTRICTED_BUILDING -DVM_DB -DVM_BOOL
+CFLAGS= $(OPTIM) $(DEFS) 
+
+# Everything except interface.c --- allows for multiple interfaces
+CFILES= create.c game.c help.c look.c match.c move.c player.c predicat.c \
+	set.c speech.c stringut.c utils.c wiz.c db.c game.c \
+	boolexp.c unparse.c socket.c text.c fight.c robot.c process.c notify.c\
+	zone.c parsbool.c objstore.c 
+
+# .obj versions of above
+OFILES= create.obj help.obj look.obj match.obj move.obj player.obj predicat.obj \
+	set.obj speech.obj stringut.obj utils.obj wiz.obj db.obj boolexp.obj \
+	unparse.obj game.obj misc.obj socket.obj text.obj fight.obj liveio.obj\
+	robot.obj process.obj notify.obj zone.obj \
+	parsbool.obj objstore.obj 
+
+# Files in the standard distribution
+DISTFILES= $(CFILES) config.h db.h externs.h interfac.h match.h \
+	interfac.c sanity-check.c extract.c \
+	help.txt small.db minimal.db restart-cmu README small.db.README \
+	CHANGES Makefile copyright.h
+
+OUTFILES= netmud.exe dump.exe sanity-check.exe extract.exe
+
+all: netmud.exe
+	copy netmud.exe \rism
+
+pretty: pretty.exe
+	pretty <\tiny\zork1
+
+pretty.exe: pretty.obj db.obj unparse.obj pp.obj utils.obj
+	link c:\lc\l\c+pretty+db+unparse+pp+utils,pretty,pretty,c:\lc\l\lc
+
+allexe: extract.exe sanity.exe netmud.exe
+
+netmud.exe: $(OFILES) interfac.obj netmud.lnk
+	link @netmud.lnk
+#	link @netmud.4th
+
+#	attrib -r mud.exe
+#	copy netmud.exe mud.exe
+#	attrib +r mud.exe
+
+disk:	
+	@erase *.bak
+	@erase *.map
+	@erase a:*.bak
+	copy *.c a:
+	copy *.h a:
+	copy makefile a:
+	copy *.asm a:
+	copy *.lnk a:
+	copy *.txt a:
+#	copy forth.ini a:
+	copy minimal.db a:
+	copy *.man a:
+
+clean:	
+	erase *.bak
+	erase *.map
+	erase *.q
+
+test: netmud.exe
+	netmud test.db test1
+
+base: netmud.exe
+	netmud base.db test1
+
+# DO NOT REMOVE THIS LINE OR CHANGE ANYTHING AFTER IT #
+boolexp.obj: boolexp.c copyright.h db.h match.h externs.h config.h interface.h fight.h boolexp.h
+	c:\lc\lc1b -n -ml -cw ${CFLAGS} $*
+	c:\lc\lc2b $*
+create.obj: create.c copyright.h db.h config.h interface.h externs.h
+db.obj: db.c copyright.h db.h config.h boolexp.h
+	c:\lc\lc1b -n -ml -cw ${CFLAGS} $*
+	c:\lc\lc2b $*
+extract.obj: extract.c copyright.h db.h
+game.obj: game.c copyright.h db.h config.h interface.h match.h externs.h
+	c:\lc\lc1b -n -ml -cw ${CFLAGS} $*
+	c:\lc\lc2b $*
+help.obj: help.c copyright.h db.h config.h interface.h externs.h
+interfac.obj: interface.c copyright.h db.h interface.h config.h descript.h fd_set.h
+look.obj: look.c copyright.h db.h config.h interface.h match.h externs.h fight.h
+match.obj: match.c copyright.h db.h config.h match.h
+move.obj: move.c copyright.h db.h config.h interface.h match.h externs.h fight.h
+	c:\lc\lc1b -n -ml -cw ${CFLAGS} $*
+	c:\lc\lc2b $*
+notify.obj: notify.c db.h interfac.h config.h descript.h
+parsbool.obj: parsbool.c boolexp.h interfac.h externs.h db.h
+paths.obj: paths.c copyright.h db.h config.h
+player.obj: player.c copyright.h db.h config.h interface.h externs.h descript.h fight.h
+predicat.obj: predicates.c copyright.h db.h interface.h config.h externs.h
+process.obj: process.c db.h interfac.h config.h descript.h
+set.obj: set.c copyright.h db.h config.h match.h interface.h externs.h
+socket.obj: socket.c db.h
+speech.obj: speech.c copyright.h db.h interface.h match.h config.h externs.h
+stringut.obj: stringutil.c copyright.h externs.h
+unparse.obj: unparse.c db.h externs.h config.h interface.h boolexp.h
+utils.obj: utils.c copyright.h db.h
+wiz.obj: wiz.c copyright.h db.h interface.h match.h externs.h
+	c:\lc\lc1b -n -ml -cw ${CFLAGS} $*
+	c:\lc\lc2b $*
+misc.obj: misc.c fd_set.h
+config.h: copyright.h
+copyright.h:
+db.h: copyright.h
+externs.h: copyright.h db.h
+interface.h: copyright.h db.h
+match.h: copyright.h db.h
+fight.obj: fight.c copyright.h db.h externs.h fight.h
+	c:\lc\lc1b -n -ml -cw ${CFLAGS} $*
+	c:\lc\lc2b $*
+robot.obj: robot.c copyright.h db.h externs.h fight.h
+	c:\lc\lc1b -n -ml -cw ${CFLAGS} $*
+	c:\lc\lc2b $*
+liveio.obj: liveio.asm
+zone.obj: zone.c copyright.h db.h interface.h match.h externs.h fight.h
+# forth interface.
+thread.obj: thread.c forth\thread.h forth\forth.h
+forth.obj: forth\forth.c forth\forth.h
+	copy forth\forth.h .
+	c:\lc\lc1 -n -ml -cw ${CFLAGS} forth\$*
+	c:\lc\lc2 forth\$*
+	echo Touched >forth.obj
+forth2.obj: forth\forth2.c forth\forth.h
+	copy forth\forth.h .
+	c:\lc\lc1 -n -ml -cw ${CFLAGS} forth\$*
+	c:\lc\lc2 forth\$*
+	echo Touched >forth2.obj
+forthdct.obj: forth\forthdct.c forth\forth.h
+	copy forth\forth.h .
+	c:\lc\lc1 -n -ml -cw ${CFLAGS} forth\$*
+	c:\lc\lc2 forth\$*
+	echo Touched >forthdct.obj
+

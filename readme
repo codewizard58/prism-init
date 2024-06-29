@@ -1,0 +1,55 @@
+I have finally got feed-up and have decided to release what I have done
+so far. The main directories you need are
+
+        PRISM   Source in C.
+        UNIX    builds PRISM for UNIXes.
+        DOS     builds PRISM for MSDOS.
+
+To build a version for your machine, you should make a directory and then 
+copy the unix or dos directories into it. The PRISM directory has the source
+file in it and the makefiles in the unix or dos directories copy the 
+required files before compiling them.
+
+I have done this so that from the one source directory I can build a unix
+and a dos and an Atari ST version. My favorite editor is WordStar 4 when
+I am program editing so the source files are stripped of the extra 
+characters by the makefile when they are copied from the PRISM to the make
+directory. You should only do editing in the PRISM dir.
+
+Other directories may be
+
+        DB      Some Databases
+        EXE     DOS executables
+        TAR     a DOS .tar file read/writer.
+
+Pete.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
