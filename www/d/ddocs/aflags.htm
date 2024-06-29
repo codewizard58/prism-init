@@ -1,0 +1,31 @@
+<h2>Object flags</h2>
+<div style="max-width:600px">
+  <p>The bottom 4 bits of the flag is used to determine the type of the object. Other flags are used for various controls.</p>
+  <pre>
+    Bit C Name .... Room.... Player . Thing .. Exit
+    ===================================================
+    04 W WIZARD .. ........ WIZARD . WORLD .. ........
+    05 L LINK_OK . ........ LISTEN . HEARTBEA LOCAL ..
+    06 D DARK .... DARK ... DARK ... DARK ... OBVIOUS.
+    07 T TEMPLE .. TEMPLE.. ........ ........ TIMESTAMP
+    08 S STICKY .. TITLE/CL SELFDRAW SELFDRAW ........
+    09 B BUILDER . ........ BUILDER. ........ ........
+    10 F FEMALE .. ........ ........ ........ FAST....
+    11 Q NO_QUIT . NO_QUIT. NO_QUIT. NO_QUIT. ........
+    12 I INHERIT . CLASS... ........ INHERIT. INTERNAL
+    13 A WEAPON .. ........ ........ ........ ........
+    14 O ROBOT ... ........ ROBOT .. ........ R-pref..
+    15 H CONTAINER ........ ........ CONTAINE PORTAL..
+    16 Pseudo Flag used to check if object is logged in.
+    =====================================================
+  </pre>
+  <p>In PRISM the main flags that provide a lot of the new functionality are
+  <dl>
+  <dt>INHERIT</dt><dd>When set on a room, this indicates that the room is a CLASS object 
+  (classroom ) and other objects can specify this room as their class. Another use of the
+  INHERIT flag on a room designates the room as a Zone object.</dd>
+  <dt>FEMALE</dt><dd>The F flag set on a player indicates that they are 'female'. When set
+  on an exit/command, this indicates that the search should stop here.</dd>
+  </dl> 
+  <p>
+</div>

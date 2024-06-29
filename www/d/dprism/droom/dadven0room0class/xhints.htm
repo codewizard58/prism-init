@@ -1,0 +1,27 @@
+// /d/dprism/droom/dadven0room0class/xhints.htm
+        start_room( "$(script.self.name)", "$(script.self.path)" , "$(player.flags)");
+        start_title();
+        out_player("$(player.name)", "$(script.player.path)" , "$(player.pennies)", "$(player.chp)", "$(player.mhp)", "$(flags)" );
+        end_title();
+        start_history("");
+
+	// 	<span class='buttons' OnClick="SendCmd('in')">In</span>
+	// 	<span class='buttons' OnClick="SendCmd('out')">Out</span>
+	// 	<span class='buttons' OnClick="SendCmd('up')">Up</span>
+	// 	<span class='buttons' OnClick="SendCmd('down')">Down</span>
+	// 	<span class='buttons' OnClick="SendCmd('sit')">Sit</span>
+	// 	<span class='buttons' OnClick="SendCmd('stand')">Stand</span>
+	// 	<span class='buttons' OnClick="SendCmd('swim')">Swim</span>
+	// 	<span class='buttons' OnClick="SendCmd('score')">Score</span>
+	// 	<span class='buttons' OnClick="SendCmd('look sign')">look sign</span>
+	// 	<span class='buttons' OnClick="SendCmd('who')">who</span>
+	$(history)
+        end_history("");
+        start_contents();
+        $(self.contents)
+        end_contents();
+        start_inventory();
+        $(player.contents)
+        end_inventory();
+        end_room( "");
+

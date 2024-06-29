@@ -1,0 +1,1339 @@
+HTTP/1.0 200 OK
+Content-Type: text/html
+
+<head>
+<title>Welcome to PRISM '16</title>
+</head>
+<body onload="doload();">
+
+<style>
+.exit {
+	color:red;
+	cursor:pointer;
+}
+
+.boxred {
+	border-width: 2px;
+	border-style: solid;
+	border-color: red;
+}
+
+.box {
+	border-width: 2px;
+	border-style: solid;
+	border-color: blue;
+}
+
+</style>
+<div class="box" id="messages">
+Welcome to PRISM.
+</div>
+
+<div id="gamediv" style="display:none;" >
+
+	<table>
+	<tr>
+	<th colspan="2" align="left">
+	<span id="player"></span>
+	<span id="health"></span>
+	<span id="pennies"></span>
+	</th>
+	<td>
+	<input type="button" value="Display" onclick="UIdisplay();" />
+	<input type="button" value="Show Debug" onclick="UIshowdebug();" />	
+	</td>
+	</tr>
+	<tr>
+	<th colspan="2" align="left" >
+	<span id="currentroom"></span>
+	</th>
+	</tr>
+	<tr>
+	<td valign="top"  ><div id="mainwindow" ></div></td>
+	<td valign="top"  ><div id="inventory" >Inventory</div></td>
+	</tr>
+	</table>
+
+</div>
+
+<div id="logindiv" style="width:600px;height:400px;" >
+<p>Welcome to PRISM. PRISM started off as a Tinymud that I ran from my desk when I was working at Imperial College Computer Centre around 1989 or 1990. Over the years 
+I have made a number of changes that reduced the number of hardcoded builtin actions and also made the engine more flexible by expanding the lock expressions that can be attached to exits.
+</p>
+<p>This database has a number of areas built from the classic text based games such as Adventure and Dungeon. The 'C' versions of Adventure and Dungeon were modified to output their game maps
+as a Tinymud/PRISM database which was then integrated into this database and the puzzles etc were re-created. 
+</p>
+<p>Login </p>
+	<table>
+	<tr>
+	<th>Player name:</th><td><input type="text" id="playername" value="guest" /></td>
+	</tr>
+	<tr>
+	<th>Player password:</th><td><input type="password" id="playerpass" value="" /></td>
+	</tr>
+	<tr>
+	<th>&nbsp;</th><td><input type="submit" name="action" value="Play" onclick="UIlogin();" /></td>
+	</tr>
+	</table>
+	<p>
+	To play as a Guest, just click "Play". If you are asked to authenticate, just enter guest as 
+	the user and leave the password blank. If you have an existing login, enter the username and 
+	password and click "Play". If you get the authenticate popup, click cancel and re-enter your
+	username and password.
+	</p>
+	<p>
+	If you want to create a user, you currently have to use the telnet interface
+	by telneting to loriandpeter.com on port 4201
+	</p>
+</div>
+<div id="inputdiv" style="display:none;" >
+	<input type="text" id="debugin" cols="80" onchange="UIdoinput();" />
+	<br />
+	<br />
+	<table>
+	<tr>
+		<td>
+			<span class="exit" onclick="docommand('nw', 1);">NW</span>
+		</td><td>
+			<span class="exit" onclick="docommand('north', 1);">North</span>
+		</td><td>
+			<span class="exit" onclick="docommand('ne', 1);">NE</span>
+		</td><td>
+			<span class="exit" onclick="docommand('in', 1);">In</span>
+		</td><td>
+			<span class="exit" onclick="docommand('out', 1);">Out</span>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<span class="exit" onclick="docommand('west', 1);">West</span>
+		</td><td>
+			<span class="exit" onclick="docommand('look', 1);">Look</span>
+		</td><td>
+			<span class="exit" onclick="docommand('east', 1);">East</span>
+		</td><td>
+			<span class="exit" onclick="docommand('up', 1);">Up</span>
+		</td><td>
+			<span class="exit" onclick="docommand('down', 1);">Down</span>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<span class="exit" onclick="docommand('sw', 1);">SW</span>
+		</td><td>
+			<span class="exit" onclick="docommand('south', 1);">South</span>
+		</td><td>
+			<span class="exit" onclick="docommand('se', 1);">SE</span>
+		</td>
+	</tr>
+	</table>
+</div>
+<div id="debugdiv" style="display:none;">
+	<textarea id="debugtext" cols="80" rows="20" style="display:none;">
+</textarea>
+
+</div>
+
+<script type="text/javascript" >
+
+var playername="guest";
+var playerpass="";
+var userok = 0;
+var prevuserok = 0;
+var ticks=0;
+var mode = 0;
+
+var dt = null;	// debugtext
+var mw = null;	// mainwindow
+var iw = null;	//
+var hw = null;	//
+
+var croom = null;// currentroom
+var curplayer = null; //
+var curpennies = null;
+var curhp = null;
+
+var curroom = null;
+
+////////////////////////////////////////////////////////////////
+// link list of objects
+//
+
+function objlist()
+{	this.head = null;
+
+	this.addobj = function( ob, data)
+	{	var o = new obj(this, ob, data);
+
+		o.next = this.head;
+		if( this.head != null){
+			o.next.prev = o;
+		}
+		this.head = o;
+//		alert("Addobj");
+
+		return o;
+	}
+
+	this.removeobj = function( ob)
+	{
+		if( ob.list != this){
+		error( "REMOVE list not this");
+			return;
+		}
+
+		// remove from list;
+		if( ob.prev != null){
+			ob.prev.next = ob.next;
+		}
+		if( ob.next != null){
+			ob.next.prev = ob.prev;
+		}
+		// see if this is the head one.
+		if( ob == this.head){
+			this.head = ob.next;
+		}
+	}
+
+	this.reverse = function()
+	{	var t,t2;
+
+		if( this.head == null){
+			return;
+		}
+		t = this.head;
+		this.head = null;
+
+		while( t != null){
+			t2 = t.next;
+			t.next = this.head;
+			t.prev = null;
+			this.head = t;
+			if( t.next != null){
+				t.next.prev = t;
+			}
+			t = t2;
+		}
+	}
+}
+
+function obj(list, ob, data)
+{	this.next = null;
+	this.prev = null;
+	this.ob = ob;
+	this.data = data;
+	this.list = list;
+
+}
+
+///////////////////////////////////////////////////////////////
+
+var histlist = new objlist();
+var curhist = null;
+var debugignorecnt=0;
+var actionlist = new objlist();
+var numhist = 15;
+var lasthist=0;
+
+function histobj( num)
+{	this.seq = parseInt( num);
+	this.data= "";
+}
+
+function processcurhist()
+{	var n, s;
+	var l;
+
+	if( curhist == null){
+		return;
+	}
+	if( curhist.data == ""){
+		return;
+	}
+
+	if( histlist.head == null){
+		histlist.addobj(curhist, null);
+		curhist = null;
+		return;
+	}
+
+	n = curhist.seq;			// seq from server
+	s = histlist.head.ob.seq;	// top seq number in history
+	if( n > s ||
+		( s > 990000 && n < 10000 )
+	){	// simple wrap around.
+		histlist.addobj( curhist, null);
+	}else {
+		debugignorecnt++;
+		// error( "DEBUG HIST: "+debugignorecnt);
+	}
+	curhist = null;
+}
+
+///////////////////////////////////////////////////////////////
+var actx = null;
+var audiotype = 0;
+var player = null;
+
+function noAudio()
+{
+}
+
+function checkaudiocontext()
+{
+	if( typeof( AudioContext) !== "undefined" ){
+		actx = new AudioContext();
+		audiotype = 1;
+		return;
+	}
+	if( typeof( webkitAudioContext) !== "undefined" ){
+		actx = new webkitAudioContext();
+		audiotype = 2;
+		return;
+	}
+	actx = new noAudio();
+}
+
+var sounds = [ 
+	"pardon", "/sound/pardon" ,
+	"welcome", "/sound/welcome" ,
+	"welcomeguest", "/sound/welcomeguest" ,
+	"RESET", "/sound/reset" ,
+	null, "/sound/oops"
+];
+
+function sound(name)
+{	this.name = name;
+	this.buffer = null;
+	
+	this.geturl = function()
+	{	var l = 0;
+		var s = this.name;
+		
+		while( sounds[l] != null){
+			if( sounds[l] == s){
+				return sounds[l+1];
+			}
+			l = l + 2;
+		}
+		return sounds[l+1];
+	}
+}
+
+function onError()
+{
+	error("failed to load sound");
+}
+
+function soundplayer()
+{	this.soundlist = new objlist();
+	this.volume = 0;
+	this.sndindex = 0;
+	this.loadingindex = 0;
+
+	if( audiotype == 0){
+		checkaudiocontext();
+	}
+	
+	// load a sound and play with volume v
+	this.loadsound = function(s )
+	{	var request = new XMLHttpRequest();
+		var snd = new sound(s);
+		var url = snd.geturl();
+		
+		this.soundlist.addobj(snd, null);
+		request._player = this;
+		error("Load "+s);
+		
+		request.open('GET', url, true);
+		request.responseType = 'arraybuffer';
+
+	  // Decode asynchronously
+	  request.onload = function() {
+			actx.decodeAudioData(request.response, function(buffer) {
+		    snd.buffer = buffer;
+		    error("Loaded "+snd.name);
+		    request._player.loadingindex += 2;
+		    
+		}, onError);
+	  }
+	  request.send();
+	}
+	
+	this.timer = function()
+	{
+		if( sounds[ this.sndindex] != null && this.sndindex == this.loadingindex){
+			this.sndindex += 2;
+			this.loadsound( sounds[ this.sndindex-2]);
+		}
+	}
+	
+	this.playsound = function(s)
+	{	var l = this.soundlist.head;
+	
+		while( l != null){
+			if( l.ob.name == s){
+				this.playbuffer( l.ob.buffer);
+				return;
+			}
+			l = l.next;
+		}
+		return;
+	}
+	
+	this.playbuffer = function(buf, vol)
+	{	var src = actx.createBufferSource();
+		src.buffer = buf;
+		src.connect(actx.destination);
+		
+		src.onended = function(){ error("Sound ended"); };
+		src.start(0);
+	}
+}
+
+
+function playsound(sound)
+{
+	if( player == null){
+		return;
+	}
+	
+	player.playsound(sound);
+	
+}
+
+///////////////////////////////////////////////////////////////
+
+function cmdobj( cmd)
+{	this.cmd = cmd;
+	this.data = "";
+	this.contents = new objlist();
+	this.exits = new objlist();
+}
+
+function actionobj()
+{	this.seq = -1;
+	this.name= "";
+
+}
+
+function doaction( action)
+{
+	if( action == "RESET" ){
+		// do a look command
+
+		docommand("look", 1);
+		playsound("RESET");
+	}else if( action == "pardon"){
+		playsound("pardon");
+	}
+}
+
+
+function room()
+{	this.name = "";
+	this.curplayer = "";
+	this.pennies=0;
+	this.level=0;
+	this.hp=0;
+	this.state = 0;		// state of the parser..
+	this.cmdlist = new objlist();
+	this.prehist = new cmdobj("history");
+	this.history = new cmdobj("history");
+	this.inventory = new objlist();
+	this.description = new cmdobj("description");
+	
+
+	// 
+	this.setroom = function( args)
+	{	var objs;
+		var n;
+
+		objs = args[1].split(",");
+
+		n = objs[0].trim();
+		this.name = n.substr(1, n.length-2);
+	}
+
+	this.eol = function()
+	{
+		if( this.eolflag == 0){
+			if( this.state == 2){	// command seq
+				this.cmdlist.head.ob.data += "<br />\n";
+			}
+			this.eolflag = 1;
+			if( curhist != null){
+				curhist.data += "<br />\n";
+			}
+		}
+	}
+
+	this.normal = function(data)
+	{	var msg = data.trim();
+
+		if( this.state == 2){	// command seq
+			if( this.cmdlist.head == null ){
+				this.history.data += data;
+			}else {
+				this.cmdlist.head.ob.data += data;
+			}
+		}else if( this.state == 5){
+			this.description.data = data;
+		}else if( this.state == 4){
+			this.prehist.data += data+"<br />\n";
+		}else {
+			this.history.data += data+"<br />\n";
+		}
+		if( curhist != null){
+			curhist.data += data;
+		}
+		this.eolflag = 0;
+	}
+
+	this.input = function(args)
+	{	var cmd = args[1].trim();
+		
+		cmd = cmd.substr(1, cmd.length-2);
+
+		this.cmdlist.addobj( new cmdobj( cmd), null);
+		this.state = 0;			// just in case we were in state 4.
+
+		if( curhist != null){
+			curhist.data += outcmd( cmd)+"<br />\n";
+		}
+	}
+
+	this.player = function(data)
+	{	var args = data.split(",");
+		if( this.state == 1){		// title
+			this.curplayer = args[0].trim();
+			this.curplayer = this.curplayer.substr(1, this.curplayer.length-2);
+
+			this.pennies = args[2].trim();
+			this.pennies = this.pennies.substr(1, this.pennies.length-2);
+
+			this.hp = args[3].trim();
+			this.hp = this.hp.substr(1, this.hp.length-2);
+
+			this.mhp = args[4].trim();
+			this.mhp = this.mhp.substr(1, this.mhp.length-2);
+		}
+	}
+
+	// title part
+	this.starttitle = function()
+	{
+		this.state = 1;		// in title
+	}
+
+	this.endtitle = function()
+	{
+		this.state = 0;		// normal
+	}
+
+	// start command sequence
+	this.startcmd = function()
+	{
+		if( this.cmdlist.head != null){
+			this.state = 2;		// command obj
+		}
+	}
+
+	this.endcmd = function()
+	{
+		this.state = 0;		// normal
+	}
+
+	// contents
+	this.addcontents = function( data)
+	{	var av = data.split(",");
+		var cl = this.cmdlist.head;
+
+		if( this.state == 2){
+			if( cl != null){
+				cl.ob.contents.addobj( av, null);
+			}
+		}else if( this.state == 3){
+			this.addinventory(data);
+		}else if( this.state != 4){
+			this.history.contents.addobj( av, null);
+		}
+	}
+
+	// start inventory sequence
+	this.startinventory = function()
+	{
+		this.state = 3;		// inventory
+		this.inventory.head = null;
+	}
+
+	this.endinventory = function()
+	{
+		this.state = 0;		// normal
+	}
+
+	// inventory
+	this.addinventory = function( data)
+	{	var av = data.split(",");
+
+		this.inventory.addobj( av, null);
+	}
+
+
+	// start history sequence, skip till something interesting...
+	// single history object used if no command sequence..
+
+	this.starthistory = function()
+	{
+		this.state = 4;		// history
+	}
+
+	this.endhistory= function()
+	{
+		this.state = 0;		// normal
+	}
+
+
+	// description (optional)
+	this.startdesc = function()
+	{
+		this.state = 5;		// description
+	}
+
+	this.enddesc = function()
+	{
+		this.state = 0;		// normal
+	}
+
+	this.outcontents = function(data)
+	{	var obj = data.trim();
+
+		obj = obj.substr(1, obj.length-2);
+
+		if( obj == "Commands:"){
+			// alert("Commands");
+		}
+
+	}
+
+	this.outexit = function( data)
+	{	var av = data.split(",");
+		var cl = this.cmdlist.head;
+
+		if( this.state == 2){
+			if( cl != null){
+				cl.ob.exits.addobj( av, null);
+			}
+//		}else if( this.state == 3){
+//			this.addinventory(data);
+		}else 
+//			if( this.state != 4)
+		{
+			this.history.exits.addobj( av, null);
+		}
+	}
+
+	///////////////////////////////////////////////
+	this.findaction = function(act, seq)
+	{	var al,nl;
+		
+		al = actionlist.head;
+
+		while( al != null){
+			if( al.ob.name == act){
+				if( al.ob.seq < seq || 
+					(al.ob.seq > 990000 && seq < 10000) 
+				){	// newer action..
+					al.ob.seq = seq;
+					return al.ob;
+				}
+				return null;
+			}
+			al = al.next;
+		}
+
+		nl = new actionobj();
+		nl.seq = seq;
+		nl.name = act;
+		actionlist.addobj(nl, null);
+		return nl;
+	}
+
+	this.action = function( l)
+	{	var seq = l.ob.seq;
+		var data= l.ob.data;
+		var al, nl;
+		var act, act1;
+
+		if( data.indexOf("docommand(") > 0){
+			return null;
+		}
+
+		act = data.indexOf( "RESET" );
+		act1= data.indexOf( "You hear someone shout ");
+		if( act > 0 && act1 == 0){
+			al = this.findaction( "RESET", seq);
+		}else if( data.indexOf("Pardon!") == 0){
+			al = this.findaction( "pardon", seq);
+		}
+		
+		
+		if( al != null){
+			// alert("Action "+al.name+" "+al.seq);
+			doaction( al.name);
+		}
+	}
+
+	// showroom
+	this.show = function()
+	{	var msg = "";
+		var l = null;
+		var cl = this.cmdlist.head;
+		var n, head;
+
+		croom.innerHTML = this.name;
+		curplayer.innerHTML = this.curplayer;
+		curpennies.innerHTML = this.pennies;
+		curhp.innerHTML = this.hp+"/"+this.mhp;
+
+		// output history
+		msg += "<br />\n";
+		l = histlist.head;
+		n = 0;
+		while( n < numhist && l != null){
+			n++;
+			l = l.next;
+		}
+		if( l != null){
+			l.next = null;
+		}
+		// only keep last numhist
+	
+		// if less than max, move down...	
+		while(n < numhist){
+			msg += "<br />\n";
+			n++;
+		}
+
+
+		histlist.reverse();
+		l = histlist.head;
+		while( l != null){
+
+			this.action(l);
+
+			msg += l.ob.data;
+
+			l = l.next;
+		}
+		histlist.reverse();
+		msg += "<br />\n";
+
+		if( cl != null){
+
+			// output contents
+			if( this.history.contents.head != null){
+				l = this.history.contents.head;
+			}else {
+				l = cl.ob.contents.head;
+			}
+			head = l;
+			if( l != null){
+				msg += "Contents: ";
+			}
+			while( l != null){
+				if( l != head){
+					msg += ", ";
+				}
+				msg += getcmd( l.ob);
+
+				l = l.next;
+			}
+			if( head != null){
+				msg += "<br />\n";
+			}
+
+			// output exits
+			if( this.history.contents.head != null){
+				l = this.history.exits.head;
+			}else {
+				l = cl.ob.exits.head;
+			}
+			if( l != null){
+				msg += "Obvious exits: ";
+			}
+			head = l;
+			while( l != null){
+				if( l != head){
+					msg += ", ";
+				}
+				msg += outexit( l.ob);
+
+				l = l.next;
+			}
+			if( head != null){
+				msg += "<br />\n";
+			}
+		}
+
+		mw.innerHTML = msg;
+	}
+
+	this.showhistory = function()
+	{	var msg = "";
+		var l = null;
+		var cl;
+		
+		msg += "History:<br />\n";
+
+		if( this.prehist.data != ""){
+			msg += this.prehist.data+"<br />\n";
+		}
+
+		this.cmdlist.reverse();
+
+		cl = this.cmdlist.head;
+
+		while(cl != null && cl.next != null){
+			msg += outcmd( cl.ob.cmd);
+			msg += "<br />\n";
+			msg += cl.ob.data+"<br />\n";
+
+			cl = cl.next;
+		}
+
+		msg += this.history.data+"<br />\n";
+
+		hw.innerHTML = msg;
+	}
+
+	this.showinventory = function()
+	{	var msg = "";
+		var l = null;
+		var cl = this.inventory.head;
+
+		while( cl != null){
+			if( cl != this.inventory.head){
+				msg += ", ";
+			}
+			msg += dropcmd( cl.ob);
+		
+			cl = cl.next;
+		}		
+
+
+		iw.innerHTML = msg;
+	}
+}
+
+function getcmd( args)
+{	var obj = args[0].substr(1, args[0].length-2);
+	var msg = "";
+	var hint;
+	
+	msg += "<span style='color:green;cursor:pointer;' ";
+	if( args.length == 4){
+		hint = args[3].trim();
+		hint = hint.substr(1, hint.length-2);
+		msg += "onclick=\"docommand('"+hint+" "+obj+"', 5);\" >";
+	}else {
+		msg += "onclick=\"docommand('get "+obj+"', 5);\" >";
+	}
+
+	msg += obj;
+	msg += "</span> \n";
+
+	return msg;
+}
+
+function dropcmd( args)
+{	var objs = args;
+	var obj = objs[0].substr(1, objs[0].length-2);
+	var msg = "";
+	
+	msg += "<span style='color:green;cursor:pointer;' ";
+	msg += "onclick=\"dodropcommand('"+obj+"', 0);\" >";
+
+	msg += obj;
+	msg += "</span> \n";
+
+	return msg;
+}
+
+function outcmd( obj)
+{	var msg = "";
+
+	msg += "<span style='color:blue;cursor:pointer;' onclick=\"docommand('"+obj+"', 0);\" >";
+
+	msg += obj;
+	msg += "</span> \n";
+
+	return msg;
+}
+
+function outexit( args)
+{	var obj;
+	var msg = "";
+	
+	if( args.length == 0){
+		return "";
+	}
+	obj = args[0].trim();
+
+	obj = obj.substr(1, obj.length-2);
+	msg += "<span style='color:red;cursor:pointer;' onclick=\"docommand('"+obj+"', 1);\" >";
+
+	msg += obj;
+	msg += "</span> \n";
+
+	return msg;
+}
+
+
+function decodeargs( args)
+{	var data;
+	var j;
+	var cmd=args[0];
+
+//		alert("cmd="+args[0]+":"+args[1]);
+
+	if( cmd == "out_eol"){			// EOL
+		curroom.eol();
+
+	}else if( cmd == "out_eolx"){	// EOLX
+		curroom.eol();
+
+	}else if( cmd == "out_normal"){	// NORMAL
+		if( args.length > 2){
+			data = args[1];
+			for(j = 2; j < args.length; j++){
+				data += "("+args[j];
+			}
+		}else {
+			data = args[1];
+		}
+		data = data.trim();
+		data = data.substr(1, data.length-2);
+
+		curroom.normal(data);
+
+	}else if( cmd == "out_input"){
+
+		curroom.input(args);
+
+	}else if( cmd == "out_player"){
+		if( args.length > 2){
+			data = args[1];
+			for(j = 2; j < args.length; j++){
+				data += "("+args[j];
+			}
+		}else {
+			data = args[1];
+		}
+		data = data.trim();
+
+		curroom.player(data);
+
+	}else if( cmd == "out_room"){
+		if( args.length > 2){
+			data = args[1];
+			for(j = 2; j < args.length; j++){
+				data += "("+args[j];
+			}
+		}else {
+			data = args[1];
+		}
+		data = data.trim();
+
+		curroom.normal(data);
+
+	}else if( cmd == "start_title"){
+		curroom.starttitle();
+	}else if( cmd == "end_title"){
+		curroom.endtitle();
+	}else if( cmd == "start_room"){
+		curroom = new room( );
+		curroom.setroom(args);
+	}else if( cmd == "end_room"){
+
+		if( histlist.head.ob.seq != lasthist){
+			// did something change?
+			curroom.show();
+	//		curroom.showhistory();
+			curroom.showinventory();
+			curroom = null;
+			lasthist = histlist.head.ob.seq;
+		}
+
+	}else if( cmd == "start_history"){	// need to skip to something...
+		curroom.starthistory();
+	}else if( cmd == "end_history"){
+		curroom.endhistory();
+		processcurhist();
+	}else if( cmd == "set_stylesheet"){
+	}else if( cmd == "out_startcmd"){	// command seq
+		curroom.startcmd();
+	}else if( cmd == "out_endcmd"){
+		curroom.endcmd();
+	}else if( cmd == "out_getobj"){		// contents
+		if( args.length > 2){
+			data = args[1];
+			for(j = 2; j < args.length; j++){
+				data += "("+args[j];
+			}
+		}else {
+			data = args[1];
+		}
+		data = data.trim();
+
+		curroom.addcontents(data);
+	}else if( cmd == "out_dropobj"){		// Inventory
+		if( args.length > 2){
+			data = args[1];
+			for(j = 2; j < args.length; j++){
+				data += "("+args[j];
+			}
+		}else {
+			data = args[1];
+		}
+		data = data.trim();
+
+		curroom.addinventory(data);
+
+	}else if( cmd == "start_contents"){
+	}else if( cmd == "end_contents"){
+	}else if( cmd == "out_contents"){
+		curroom.outcontents( args[1]);
+	}else if( cmd == "out_obvious"){
+	}else if( cmd == "out_exit"){
+		if( args.length > 2){
+			data = args[1];
+			for(j = 2; j < args.length; j++){
+				data += "("+args[j];
+			}
+		}else {
+			data = args[1];
+		}
+		data = data.trim();
+
+		curroom.outexit(data);
+
+	}else if( cmd == "out_padding"){
+	}else if( cmd == "start_inventory"){
+		curroom.startinventory();
+	}else if( cmd == "end_inventory"){
+		curroom.endinventory();
+	}else if( cmd == "show_nav"){
+	}else if( cmd == "out_description"){
+		// curroom.normal(args[1]);
+	}else if( cmd == "start_description"){
+		curroom.startdesc();
+	}else if( cmd == "end_description"){
+		curroom.enddesc();
+	}else if( cmd == "set_color"){
+	}else if( cmd == "history_seq"){
+		data = args[1].trim();
+		data = data.substr(1, data.length-2);
+		processcurhist();
+		curhist = new histobj( data);
+	}else {
+		error("UNKNOWN: "+cmd+":"+args[1]);
+	}
+
+}
+
+function queuedata(d, reqmode)
+{	var lines = d.split(/\r\n|\r|\n/g);
+	var n, i, l, ch, j;
+	var args, cmd;
+	var data = "";
+
+	for(n=0; n < lines.length; n++){
+		i = 0;
+		l = lines[n];
+		ch = ' ';
+		while( ch == ' ' || ch == '\t'){
+			ch = l.charAt(i);
+			i = i+1;
+		}
+		if( i >= l.length){
+			continue;
+		}
+		
+		if( ch == '/' && l.charAt(i) == '/'){
+			// ignore;
+			continue;
+		}
+		cmd = l.substr(i-1, l.length-i-1);
+		args = cmd.split("(");
+
+		decodeargs( args);
+	}
+
+	dt.value = d;
+}
+
+function error(msg)
+{	var m = document.getElementById("messages");
+
+	if( m == null){
+		return;
+	}
+	m.innerHTML=msg;
+}
+
+function dologin()
+{	var x = new XMLHttpRequest();
+
+	x.onreadystatechange = function()
+	{
+		if( this.readyState == 4){
+			var d = this.responseText;
+
+			// check return code
+			if( this.status == 401){
+				userok = 0;
+				error("Login failed");
+				return;
+			}
+
+			if( playername == "guest"){
+				playername=d;
+				playerpass=d;
+				userok = 1;
+				error("Welcome "+d);
+				return;
+			}
+
+			if( d == ""){
+				userok = 0;
+				alert("No data");
+				return;
+			}
+
+			queuedata(d, 0);
+			userok = 2;
+			error("Welcome "+playername);
+		}
+	}
+
+	if( phpplayer){
+		if( playername == "guest") {
+			reqstr="?player="+playername;
+		}else {
+			reqstr="?player="+playername+"&password="+playerpass;
+		}
+
+		x.open('GET', reqstr, true);
+	}else {
+		reqstr="~"+playername;
+
+		x.open('GET', reqstr, true);
+
+		if( playername != "guest"){
+			x.setRequestHeader("Authorization", "Basic " + btoa(playername+":"+playerpass));
+		}
+	}
+	x.send(null);
+}
+
+function dodropcommand(cmd, mode)
+{
+	docommand("drop "+cmd, mode);
+}
+
+function docommand(cmd, mode)
+{	var x = new XMLHttpRequest();
+	var reqstr="";
+
+	x._mode = mode;
+
+	x.onreadystatechange = function()
+	{
+		if( this.readyState == 4){
+			var d = this.responseText;
+
+			// check return code
+			if( this.status == 401){
+				userok = 0;
+				// alert("Login failed");
+				return;
+			}
+
+			if( this.status != 200){
+				userok=0;
+				alert("Got resonse code "+this.status);
+				return;
+			}
+
+			if( d == ""){
+				userok = 0;
+				//alert("No data");
+				error("Logged off");
+				return;
+			}
+
+			ticks = 0;
+			queuedata(d, this._mode);
+		}
+	}
+
+	if( phpplayer){
+		reqstr="?player="+playername+"&password="+playerpass+"&cmd="+encodeURIComponent(cmd);
+
+		x.open('GET', reqstr, true);
+	}else {
+		reqstr="~"+playername+"/?="+encodeURIComponent(cmd);
+
+		x.open('GET', reqstr, true);
+	// error("Send "+"~"+playername+"/?="+cmd);
+		x.setRequestHeader("Authorization", "Basic " + btoa(playername+":"+playerpass));
+	}
+	x.send(null);
+}
+
+function UIlogin()
+{	var pn = document.getElementById("playername");
+	var pp = document.getElementById("playerpass");
+	
+	playername=pn.value;
+	playerpass = pp.value;
+
+//	alert("Login: "+playername);
+	player.playsound("welcomeguest");
+
+	dologin();
+	
+}
+
+function UIdoinput()
+{	var di = document.getElementById("debugin");
+
+//	alert("In="+di.value);
+	if( userok != 0){
+		docommand( di.value, 1);
+	}
+	di.value="";
+}
+
+function UIdisplay()
+{
+	numhist -= 5;
+	if( numhist < 10){
+		numhist = 20;
+	}
+	error("Screen width="+screenwidth+" height="+screenheight);
+}
+
+var debughidden=true;
+
+function UIshowdebug()
+{	var x;
+
+	x = document.getElementById("debugtext");
+	if( debughidden){
+		x.style.display = "block";
+		debughidden = false;
+	}else {
+		x.style.display = "none";
+		debughidden = true;
+	}
+
+}
+
+function showlogin()
+{	var x = document.getElementById("logindiv");
+
+	x.style.display="block";
+
+	x = document.getElementById("gamediv");
+	x.style.display="none";
+	
+	x = document.getElementById("debugdiv");
+	x.style.display = "none";
+
+	x = document.getElementById("inputdiv");
+	x.style.display = "none";
+
+	histlist.head = null;		// remove previous history info...
+}
+
+function hidelogin()
+{	var x = document.getElementById("logindiv");
+
+	x.style.display="none";
+
+	x = document.getElementById("gamediv");
+	x.style.display = "block";
+
+	x = document.getElementById("inputdiv");
+	x.style.display = "block";
+
+	x = document.getElementById("debugdiv");
+	x.style.display = "block";
+}
+
+var screenwidth=0;
+var screenheight=0;
+
+function dotimer()
+{	
+	if( window.innerWidth != screenwidth ||
+		window.innerHeight != screenheight){
+
+		screenheight = window.innerHeight;
+		screenwidth = window.innerWidth;
+
+		error("Screen width="+screenwidth+" height="+screenheight);
+	}
+
+	if( prevuserok != userok){
+		if( userok == 0){
+			showlogin();
+		}else {
+			if( prevuserok == 0){
+				hidelogin();
+			}
+			if( userok == 1){
+				userok = 2;
+				docommand("look", 1);
+			}
+		}
+		prevuserok = userok;
+	}
+
+	if( userok != 0){
+		ticks++;
+
+		// error("Tick "+ticks);
+		if( ticks == 5){
+		
+			docommand("", 0);
+		}
+	}
+	
+	if( player != null){
+		player.timer();
+	}
+}
+
+function doload()
+{
+	dt = document.getElementById("debugtext");
+	mw = document.getElementById("mainwindow");
+	iw = document.getElementById("inventory");
+	hw = document.getElementById("history");
+
+	croom = document.getElementById("currentroom");
+	curplayer = document.getElementById("player");
+	curpennies = document.getElementById("pennies");
+	curhp = document.getElementById("health");
+	
+	player = new soundplayer();
+	
+	setInterval( dotimer, 100);
+}
+
+</script>
+</body>
+

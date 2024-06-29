@@ -1,0 +1,101 @@
+<head>
+<title>Welcome to PRISM 2016</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body onload="doload();">
+
+<style>
+  .exit {
+  color:red;
+  cursor:pointer;
+  }
+
+  .boxred {
+  border-width: 2px;
+  border-style: solid;
+  border-color: red;
+  }
+
+  .box {
+  border-width: 2px;
+  border-style: solid;
+  border-color: blue;
+  }
+
+  #Test
+  {
+  position: absolute;
+  visibility: hidden;
+  height: auto;
+  width: auto;
+  white-space: nowrap; /* Thanks to Herb Caudill comment */
+  }
+  
+</style>
+
+  <div class="box" id="logindiv" >
+    <p>
+      Welcome to the Web interface to <a href="history.htm">PRISM</a>. PRISM is a Multi User Dungeon that started off as a TinyMud <a href="https://en.wikipedia.org/wiki/TinyMUD">(Wikipedia)</a>. 
+    </p>
+    
+        <div  align="center">To play as a Guest:</div>
+        <div  align="center">
+          <input type="button" name="action" value="Adventure" onclick="UIguestlogin('adventure');" />
+          <input type="button" name="action" value="Dungeon" onclick="UIguestlogin('dungeon');" />
+          <input type="button" name="action" value="Shades" onclick="UIguestlogin('shades');" />
+        </div>
+    <table>
+      <tr>
+              <td colspan="3" align="center">If you have an existing login</td>
+            </tr>
+            <tr>
+              <th align="right">Player name:</th>
+              <td>
+                <input type="text" id="playername" value="" />
+              </td>
+            </tr>
+            <tr>
+              <th>Player password:</th>
+              <td>
+                <input type="password" id="playerpass" value="" />
+              </td>
+            </tr>
+            <tr>
+              <th>&nbsp;</th>
+              <td align="right">
+                <input type="button" name="action" value="Play" onclick="UIlogin();" />
+              </td>
+      </tr>
+
+    </table>
+    <p>
+      To play as a guest, click Adventure, Dungeon etc. If you are asked to authenticate, just click Ok/Login. If you
+      have an existing login, enter the username and password and click   
+      <input type="button" name="action" value="Play" onclick="UIlogin();" />
+      . If you get the
+      authenticate popup, click cancel and re-enter your username and password and try again.
+    </p>
+    <p>
+      If you want to create a new user, you currently have to use the telnet interface
+      by telneting to petes-picks.com on port 4201
+      If that does not work or you have other feedback send email to
+      codewizard58@gmail.com
+    </p>
+  </div>
+
+
+  <div id="gamediv" style="display:none;" >
+
+    <p>Game data goes here.</p>
+    <input type="button" value="Play" onclick="docommand('look', 0);" />
+
+</div>
+
+  <div id="debugdiv" style="display:none;">
+	<textarea id="debugtext" cols="80" rows="20" style="display:none;">
+</textarea>
+
+</div>
+
+
+<script type="text/javascript" >

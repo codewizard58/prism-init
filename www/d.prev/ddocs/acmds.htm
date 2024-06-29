@@ -1,0 +1,58 @@
+<body>
+<h2>Builtin commands</h2>
+<div style="max-width:600px;" >
+  <p>All builtin commands start with @. The uppercase characters show the minimum 
+  letters that need to be typed for the command to be matched.</p>
+  <pre>
+    @ARGs ................ ........... Print the argument table
+    @BOOLfuncs page_no ... ........... List lock functions
+    @BRoadcast msg ....... <Arch />... Broadcast 'msg'
+    @CHown obj=new_owner . <Arch />... Change Ownership of obj
+    @CLass obj=class_room. <Arch />... Change Ownership of obj
+    @COMmands page_no ................ List this info
+    @COST obj=new_value .. <Arch />... Change the pennies value of an object
+    @CReate obj=value .... <builder /> Create a Thing Object with name 'obj'
+    @DEBUG number ........ <god />.... Used to set debug flag
+    @DEFault type=class .. <god />.... Used to set default classes
+    @DESCribe obj=desc ... <builder /> Set the desciption of obj to 'desc'
+    @DESTROY obj ......... <builder /> Destroy obj, you must own it.
+    @DIG name [=exit] .... <builder /> Create a new room
+    @DUMP ................ <god />.... Does a checkpoint dump
+    @EDIT obj ............ <Arch />... Edit object
+    @EXamine obj ......... <builder /> Get detailed look of object you own
+    @EXTRACT arg1=arg2 ... <god/> ..... Extract part of the database
+    @FIND [/exit|/#obj] name ......... Find objects with 'name' in their title
+    @FLAgs ............... ........... Print the flag values
+    @Gripe msg ....................... Complain
+    @HELp ............................ Print the help file
+    @Inventory ........... <wiz/> ..... See your contents
+    @LBRoadcast msg ...... <wiz/> ..... Broadcast 'msg' within ZONE
+    @LEVels .......................... Print the levels info
+    @LInk obj = loc ...... <builder/> . Link exit 'obj' to room 'loc'
+    @LOCK obj = expr ..... <builder/> . Lock the obj with the lock 'expr'
+    @LOOK obj ............ <wiz/> ..... Look at obj
+    @MERGE file .......... <god/> ..... Upload another TinyDatabase
+    @NAME old = new .................. Change the name of obj 'old to 'new'
+    @NEWPASSWORD player=password. <wiz/>
+    @NEWs ............................ Print the news file
+    @OPEN [/#obj] exit[= #room] .. <builder/> . Open exit [command on obj] to room
+    @PASSWORD old_pass=new_pass ...... Change your password
+    @QUIT ............................ Leave game.
+    @RELInk exit=#room ... <builder/> . Relink an exit/command to room
+    @RESET ............... <wiz/> ..... Perform a reset, send .reset # to all
+    @ROBOt name=stats .... <wiz/> ..... Control robots
+    @SCore ........................... Tell you your score
+    @SET obj = [!]flag ... <builder/> . Set/Reset flags on obj
+    @SHUTDOWN ............ <god/> ..... Save the database and shutdown
+    @STATS	.......................... Print various statistics
+    @TIME obj[=delta] .... <wiz/> ..... Change the timestamp of object
+    @TOAD player ......... <Arch/> .... Turn a player into toad (Non reversable)
+    @TOP ................. ........... Print the top ten.
+    @UNLINK obj .......... <builder/> . Unlink an exit
+    @UNLOCK obj .......... <builder/> . Remove the lock on object
+    @VERsion ............. ........... Print version number
+    @WHICH command ....... <builder/> . Print the exits that match command
+    @ZONE ................ ........... Print the zone you are in
+  </pre>
+</div>
+</body>

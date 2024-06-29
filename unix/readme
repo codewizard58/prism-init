@@ -1,0 +1,8 @@
+Do not build in this folder.
+Create a folder in the directory above. Copy the files here into the new folder and make.
+EG.
+mkdir ../test
+cp * ../test
+cd ../test
+make
+

@@ -1,0 +1,44 @@
+<h2>Lock functions</h2>
+<div style="max-width:600px">
+  <pre>
+    Boolexp function list Page 0.
+    ==============================
+    exp1 &amp; exp2 . True if exp1 and exp2 is true.
+    exp1 | exp2 . True if exp1 or exp2 is true.
+    ! exp . True if exp is FALSE.
+    @obj . True if lock on obj is true.
+    AGE{secs,obj} . True if obj is less than secs old.
+    EXEC{"cmds",auth} . Execute cmds quietly with euid set to auth.
+    EXECL{"cmds",auth}. Execute cmds with euid set to auth.
+    FAIL{"msg",target}. Like SUCC but returns false.
+    FALSE{0} . Always false.
+    FLAGS{flag,obj} . True if bit flag is set in obj's flags
+    HAS{loc,obj} . True if loc contains obj
+    HEAL{amount} . Heal player, kill a bit if amount is negative.
+    LEVEL{lev} . True if players level is &lt;= lev.
+    MOVE{obj,loc} . Move obj to loc.
+    OFAIL{"omsg"} . Tell others in room omsg, return false.
+    OSUCC{"omsg"} . Tell others in room omsg, return true.
+    PUSH{"cmd"} . Push cmd onto players input queue.
+    REWARD{amount} . Give player amount.
+    RND{i,j} . True i in j times.
+    SEND{"msg",auth} . Send msg to receiver (self).
+    SSEND{"msg",auth} . Send to super class of receiver (super).
+    SUCC{"msg",target}. Tell target msg, player if target not
+    specified. Always true.
+    TEL{obj,loc} . As for move.
+    TRUE{ } . Always true.
+    WOUND{amount} . Opposite of HEAL.
+    SHOW{#obj,arg} . Show multi-media object
+    HIDE{#obj,arg} . Hide multi-media object
+    DEF{#obj,arg} . Define multi-media object
+    $obj . Obsolete version of EXEC{}.
+    DROP{0} . Obsolete.
+    BSUCC{"msg",target} . Tell target msg if BSX capable. Always true.
+    BOSUCC{"msg",target}. Tell others msg if BSX capable. Always true.
+    CLASS{class,obj} .
+    POS{sub,add} . Change position, x=x-sub+add
+    WITHIN{x,y} . True if receiver within box, x y define corners.
+    EMPTY{obj} . Not Implemented.
+  </pre>
+  </div>

@@ -1,0 +1,545 @@
+HTTP/1.0 200 OK
+Content-Type: text/html
+
+<head>
+<title>Welcome to PRISM '15</title>
+</head>
+<body onload="doload();">
+
+<div id="messages">
+Welcome to PRISM.
+</div>
+<style>
+.exit {
+	color:red;
+	cursor:pointer;
+}
+
+.box {
+	border-width: 2px;
+	border-style: solid;
+	border-color: red;
+}
+
+</style>
+
+<div id="gamediv" style="display:none;" >
+
+	<table>
+	<tr>
+	<th colspan="2" align="left">
+	<span id="player"></span>
+	<span id="health"></span>
+	<span id="pennies"></span>
+	</th>
+	</tr>
+	<tr>
+	<th colspan="2" align="left" >
+	<span id="currentroom"></span>
+	</th>
+	</tr>
+	<tr>
+	<td valign="top" ><div id="mainwindow" width="600" height="400"></div></td>
+	<td valign="top"><div id="history" width="400" height="400" ></div></td>
+	<td valign="top"><div id="inventory" width="100" height="400"></div></td>
+	</tr>
+	</table>
+
+</div>
+
+<div id="logindiv">
+<p>Login </p>
+	<table>
+	<tr>
+	<th>Player name:</th><td><input type="text" id="playername" value="guest" /></td>
+	</tr>
+	<tr>
+	<th>Player password:</th><td><input type="password" id="playerpass" value="" /></td>
+	</tr>
+	<tr>
+	<th>&nbsp;</th><td><input type="submit" name="action" value="Play" onclick="UIlogin();" /></td>
+	</tr>
+	</table>
+</div>
+<div id="inputdiv" style="display:none;" >
+	<input type="text" id="debugin" cols="80" onchange="UIdoinput();" />
+	<br />
+	<table>
+	<tr>
+		<td>
+			<span class="exit" onclick="docommand('nw', 1);">NW</span>
+		</td><td>
+			<span class="exit" onclick="docommand('north', 1);">North</span>
+		</td><td>
+			<span class="exit" onclick="docommand('ne', 1);">NE</span>
+		</td><td>
+			<span class="exit" onclick="docommand('in', 1);">In</span>
+		</td><td>
+			<span class="exit" onclick="docommand('out', 1);">Out</span>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<span class="exit" onclick="docommand('west', 1);">West</span>
+		</td><td>
+			<span class="exit" onclick="docommand('look', 1);">Look</span>
+		</td><td>
+			<span class="exit" onclick="docommand('east', 1);">East</span>
+		</td><td>
+			<span class="exit" onclick="docommand('up', 1);">Up</span>
+		</td><td>
+			<span class="exit" onclick="docommand('down', 1);">Down</span>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<span class="exit" onclick="docommand('sw', 1);">SW</span>
+		</td><td>
+			<span class="exit" onclick="docommand('south', 1);">South</span>
+		</td><td>
+			<span class="exit" onclick="docommand('se', 1);">SE</span>
+		</td>
+	</tr>
+	</table>
+</div>
+<div id="debugdiv" style="display:none;">
+	<textarea id="debugtext" cols="80" rows="20">
+</textarea>
+</div>
+
+<script type="text/javascript" >
+
+var playername="guest";
+var playerpass="";
+var userok = 0;
+var prevuserok = 0;
+var inventory="";
+var description="";
+var loc="";
+var pennies=0;
+var level=0;
+var hp=0;
+var ticks=0;
+var mode = 0;
+
+function getcmd( args)
+{	var objs = args[1].split(",");
+	var obj = objs[0].substr(1, objs[0].length-2);
+	var msg = "";
+	
+	msg += "<span style='color:green;cursor:pointer;' ";
+	msg += "onclick=\"docommand('get "+obj+"', 5);\" >";
+
+	msg += obj;
+	msg += "</span> \n";
+
+	return msg;
+}
+
+function dropcmd( args)
+{	var objs = args[1].split(",");
+	var obj = objs[0].substr(1, objs[0].length-2);
+	var msg = "";
+	
+	msg += "<span style='color:green;cursor:pointer;' ";
+	msg += "onclick=\"dodropcommand('"+obj+"', 0);\" >";
+
+	msg += obj;
+	msg += "</span> \n";
+
+	return msg;
+}
+
+function outcmd( args)
+{	var obj = args[1].trim();
+	var msg = "";
+
+	obj = obj.substr(1, obj.length-2);
+	msg += "<span style='color:blue;cursor:pointer;' onclick=\"docommand('"+obj+"', 0);\" >";
+
+	msg += obj;
+	msg += "</span> \n";
+
+	return msg;
+}
+
+function outexit( args)
+{	var obj = args[1].trim();
+	var msg = "";
+
+	obj = obj.substr(1, obj.length-2);
+	msg += "<span style='color:red;cursor:pointer;' onclick=\"docommand('"+obj+"', 1);\" >";
+
+	msg += obj;
+	msg += "</span> \n";
+
+	return msg;
+}
+
+
+function setroom( args)
+{	var obj = args[1].trim();
+	var r = document.getElementById("currentroom");
+	var msg="";
+	var objs;
+
+	objs = obj.split(",");
+	obj = objs[0].substr(1, objs[0].length-2);
+
+	msg += obj;
+
+	r.innerHTML = msg;
+}
+
+function setscore(params)
+{	var data, data2;
+	var f;
+
+	f = document.getElementById("player");
+	data = params[0].trim();
+	f.innerHTML = data.substr(1, data.length-2);
+
+	f = document.getElementById("health");
+	data = params[3].trim();
+	data2 = params[4].trim();
+	f.innerHTML = data.substr(1, data.length-2)+"/"+data2.substr(1, data.length-2);
+
+	f = document.getElementById("pennies");
+	data = params[2].trim();
+	f.innerHTML = data.substr(1, data.length-2);
+}
+
+function queuedata(d, reqmode)
+{	var dt = document.getElementById("debugtext");
+	var mw = document.getElementById("mainwindow");
+	var iw = document.getElementById("inventory");
+	var hw = document.getElementById("history");
+	var lines = d.split(/\r\n|\r|\n/g);
+	var n, i, l, ch, j;
+	var msg="";
+	var args, cmd;
+	var msg0="";
+	var contents="";
+	var exits="";
+	var prevcmds="";
+	var data = "";
+	var params = "";
+	var noeol = false;
+
+	for(n=0; n < lines.length; n++){
+		i = 0;
+		l = lines[n];
+		ch = ' ';
+		while( ch == ' ' || ch == '\t'){
+			ch = l.charAt(i);
+			i = i+1;
+		}
+		if( i >= l.length){
+			continue;
+		}
+		
+		if( ch == '/' && l.charAt(i) == '/'){
+			// ignore;
+			continue;
+		}
+		cmd = l.substr(i-1, l.length-i-1);
+		args = cmd.split("(");
+//		alert("cmd="+args[0]+":"+args[1]);
+		if( args[0] == "out_eol"){
+			if(noeol ){
+				continue;
+			}
+			if( mode == 1){
+				description += "<br />\n"+mode+": ";
+			}else {
+				msg += "<br />\n"+mode+": ";
+			}
+		}else if( args[0] == "out_normal"){
+			if( args.length > 2){
+				data = args[1];
+				for(j = 2; j < args.length; j++){
+					data += "("+args[j];
+				}
+			}else {
+				data = args[1];
+			}
+			data = data.trim();
+			data = data.substr(1, data.length-2);
+			if( mode == 1){
+				description += data;
+			}else {
+				msg += data;
+			}
+		}else if( args[0] == "out_input"){
+			if( prevcmds != ""){
+				prevcmds += ", ";
+			}
+			prevcmds += outcmd(args);
+		}else if( args[0] == "out_player"){
+			data = args[1].trim();
+			params = data.split(",");
+			if( mode == 2){
+				setscore(params);
+			}
+
+			//msg += args[1];
+		}else if( args[0] == "start_title"){
+			mode = 2;
+		}else if( args[0] == "end_title"){
+			mode = 0;
+		}else if( args[0] == "start_room"){
+			setroom(args);
+		}else if( args[0] == "end_room"){
+		}else if( args[0] == "start_history"){
+			msg="";
+		}else if( args[0] == "end_history"){
+		}else if( args[0] == "set_stylesheet"){
+		}else if( args[0] == "out_startcmd"){
+			mode = reqmode;		// response from the command, 1 = exit, 0 = other
+			if( mode == 1){
+				description = ""+mode+": ";
+			}
+			contents = "";
+			exits = "";
+		}else if( args[0] == "out_endcmd"){
+			mode = 0;
+			msg="";
+		}else if( args[0] == "out_getobj"){
+			if( mode == 4 ){
+				if( reqmode != 0){
+					if( inventory != ""){
+						inventory += ", ";
+					}
+					inventory += dropcmd(args);
+				}
+			}else {
+				if( contents != ""){
+					contents += ", ";
+				}
+				contents += getcmd(args);
+			}
+		}else if( args[0] == "start_contents"){
+			contents="";
+		}else if( args[0] == "end_contents"){
+			msg += contents;
+		}else if( args[0] == "out_contents"){
+			noeol = true;		// skip eol and padding..
+		}else if( args[0] == "out_obvious"){
+			exits="";
+		}else if( args[0] == "out_exit"){
+			if( exits != ""){
+				exits += ", ";
+			}
+			exits+= outexit(args);
+		}else if( args[0] == "out_padding"){
+		}else if( args[0] == "start_inventory"){
+			mode = 4;
+			inventory = "";
+		}else if( args[0] == "end_inventory"){
+			mode = 1;
+		}else if( args[0] == "show_nav"){
+		}else if( args[0] == "out_eolx"){
+		}else {
+			msg += args[0]+":"+args[1]+"<br />\n";
+		}
+	}
+
+	if( mw != null){
+		mw.innerHTML = description+"<br />Contents: "+contents+"<br />Obvious Exits: "+exits+"<br />"+prevcmds;
+	}
+	if( hw != null){
+		hw.innerHTML= "<div class='box'>"+msg+"</div>\n";
+	}
+	if( iw != null){
+		iw.innerHTML = inventory;
+	}
+
+
+	dt.value = d;
+	dt = document.getElementById("gamediv");
+}
+
+function error(msg)
+{	var m = document.getElementById("messages");
+
+	if( m == null){
+		return;
+	}
+	m.innerHTML=msg;
+}
+
+function dologin()
+{	var x = new XMLHttpRequest();
+
+	x.onreadystatechange = function()
+	{
+		if( this.readyState == 4){
+			var d = this.responseText;
+
+			// check return code
+			if( this.status == 401){
+				userok = 0;
+				error("Login failed");
+				return;
+			}
+
+			if( playername == "guest"){
+				playername=d;
+				playerpass=d;
+				userok = 1;
+				error("Welcome "+d);
+				return;
+			}
+
+			if( d == ""){
+				userok = 0;
+				alert("No data");
+				return;
+			}
+
+			queuedata(d, 0);
+			userok = 2;
+			error("Welcome "+playername);
+		}
+	}
+
+	x.open('GET', "~"+playername, true);
+	if( playername != "guest"){
+		x.setRequestHeader("Authorization", "Basic " + btoa(playername+":"+playerpass));
+	}
+	x.send(null);
+}
+
+function dodropcommand(cmd, mode)
+{
+	docommand("drop "+cmd, mode);
+}
+
+function docommand(cmd, mode)
+{	var x = new XMLHttpRequest();
+
+	x._mode = mode;
+
+	x.onreadystatechange = function()
+	{
+		if( this.readyState == 4){
+			var d = this.responseText;
+
+			// check return code
+			if( this.status == 401){
+				userok = 0;
+				// alert("Login failed");
+				return;
+			}
+
+			if( this.status != 200){
+				userok=0;
+				alert("Got resonse code "+this.status);
+				return;
+			}
+
+			if( d == ""){
+				userok = 0;
+				//alert("No data");
+				error("Logged off");
+				return;
+			}
+
+			ticks = 0;
+			queuedata(d, this._mode);
+		}
+	}
+
+	x.open('GET', "~"+playername+"/?="+cmd, true);
+	error("Send "+"~"+playername+"/?="+cmd);
+
+	x.setRequestHeader("Authorization", "Basic " + btoa(playername+":"+playerpass));
+	x.send(null);
+}
+
+function UIlogin()
+{	var pn = document.getElementById("playername");
+	var pp = document.getElementById("playerpass");
+	
+	playername=pn.value;
+	playerpass = pp.value;
+
+//	alert("Login: "+playername);
+	dologin();
+	
+}
+
+function UIdoinput()
+{	var di = document.getElementById("debugin");
+
+//	alert("In="+di.value);
+	if( userok != 0){
+		docommand( di.value, 1);
+	}
+	di.value="";
+}
+
+function showlogin()
+{	var x = document.getElementById("logindiv");
+
+	x.style.display="block";
+
+	x = document.getElementById("gamediv");
+	x.style.display="none";
+	
+	x = document.getElementById("debugdiv");
+	x.style.display = "none";
+
+	x = document.getElementById("inputdiv");
+	x.style.display = "none";
+}
+
+function hidelogin()
+{	var x = document.getElementById("logindiv");
+
+	x.style.display="none";
+
+	x = document.getElementById("gamediv");
+	x.style.display = "block";
+	x = document.getElementById("debugdiv");
+	x.style.display = "block";
+	x = document.getElementById("inputdiv");
+	x.style.display = "block";
+}
+
+function dotimer()
+{
+	if( prevuserok != userok){
+		if( userok == 0){
+			showlogin();
+		}else {
+			if( prevuserok == 0){
+				hidelogin();
+			}
+			if( userok == 1){
+				userok = 2;
+				docommand("look", 1);
+			}
+		}
+		prevuserok = userok;
+	}
+
+	if( userok != 0){
+		ticks++;
+
+		// error("Tick "+ticks);
+		if( ticks == 5){
+		
+			docommand("", 0);
+		}
+	}
+}
+
+function doload()
+{
+	setInterval( dotimer, 100);
+}
+
+</script>
+</body>
+

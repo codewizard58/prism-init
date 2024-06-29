@@ -1,0 +1,4 @@
+$NETDBM="/data/netdbm/www";
+$GAMEDB="/data/netdbm/db/prism";
+$PRISMROOT="/data/www/games/prism/root";
+$PRISMPHP="/data/www/games/prism/php";

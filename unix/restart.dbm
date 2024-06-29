@@ -1,0 +1,23 @@
+#!/bin/csh -f
+#cd /usr/spool/netdbm
+set SPOOL=/usr/spool/netdbm/
+set LOG=
+mv ${SPOOL}mvax.db mvax.db.old
+if(-r ${SPOOL}mvax.db.new) then
+	mv ${SPOOL}mvax.db.new ${SPOOL}mvax.db
+else
+	cp mvax.db.old ${SPOOL}mvax.db
+endif
+
+if(-r netdbm.new ) then
+	mv netdbm netdbm.old
+	mv netdbm.new netdbm
+	chown netdbm netdbm
+	echo Using new version of netdbm
+	ls -al netdbm*
+else
+	echo No new version found
+endif
+
+echo RESTARTED AT `date` >> mvax.log
+exec ./netdbm ${SPOOL}mvax.db ${SPOOL}mvax.db.new >>& ${LOG}mvax.log $1 $2
